@@ -4,6 +4,7 @@ import re
 import math
 import argparse
 import subprocess
+from string import Formatter
 
 from snakemake import io
 
@@ -135,15 +136,24 @@ def populate_config_placeholders(arg_dict, job_properties):
     wildcard_string = None
     if wildcards is not None:
         wildcard_string = ",".join(
-            "{key}={value}".format(key=key, value=value) \
-                for key, value in wildcards.items())
+            f"{k}={v}" for k, v in wildcards.items())
 
     for sp in sbatch_params:
         sp_value = arg_dict.get(sp, None)
         if sp_value is not None:
+            # Represent replacemnt fields that are not rule or
+            # wildcards literally.
+            fields = (x[1] for x in Formatter().parse(sp_value))
+            extra_fields = {}
+            for f in fields:
+                if f not in ["rule", "wildcards"] and f is not None:
+                    # Due to the cookiecutter templating, I can't find a
+                    # way to use replacement fields to generate this string.
+                    extra_fields[f] = "{"+f+"}"
             adjusted_args[sp] = sp_value.format(
                 rule=rule,
-                wildcards=wildcard_string)
+                wildcards=wildcard_string,
+                **extra_fields)
 
     arg_dict.update(adjusted_args)
     return arg_dict
