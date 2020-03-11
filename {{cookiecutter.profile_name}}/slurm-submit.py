@@ -49,6 +49,9 @@ sbatch_options.update(job_properties.get("cluster", {}))
 if ADVANCED_ARGUMENT_CONVERSION:
     sbatch_options = slurm_utils.advanced_argument_conversion(sbatch_options)
 
+# 7) Populate placeholders in sbatch parameters
+sbatch_options.update(slurm_utils.populate_config_placeholders(sbatch_options, job_properties))
+
 # ensure sbatch output dirs exist
 for o in ("output", "error"):
     slurm_utils.ensure_dirs_exist(sbatch_options[o]) if o in sbatch_options else None

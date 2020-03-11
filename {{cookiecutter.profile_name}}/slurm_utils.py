@@ -115,6 +115,40 @@ def advanced_argument_conversion(arg_dict):
     return arg_dict
 
 
+def populate_config_placeholders(arg_dict, job_properties):
+    """Populate rule and wildcard placeholders.
+
+    Right now the snakemake parameters that can be used are `rule` and
+    `wildcards`. These will put into `job-name`, `output` and `error`.
+    """
+    sbatch_params = [
+        "job-name",
+        "output",
+        "error"
+    ]
+
+    adjusted_args = {}
+
+    rule = job_properties.get("rule", None)
+    wildcards = job_properties.get("wildcards", None)
+
+    wildcard_string = None
+    if wildcards is not None:
+        wildcard_string = ",".join(
+            "{key}={value}".format(key=key, value=value) \
+                for key, value in wildcards.items())
+
+    for sp in sbatch_params:
+        sp_value = arg_dict.get(sp, None)
+        if sp_value is not None:
+            adjusted_args[sp] = sp_value.format(
+                rule=rule,
+                wildcards=wildcard_string)
+
+    arg_dict.update(adjusted_args)
+    return arg_dict
+
+
 def _get_default_partition():
     """Retrieve default partition for cluster"""
     res = subprocess.check_output(["sinfo", "-O", "partition"])
